@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candy Morsels</title>
+    <style>
+        body {
+            background: url('https://static.vecteezy.com/system/resources/thumbnails/003/235/083/original/candyland-cartoon-background-free-video.jpg') center center / cover no-repeat fixed;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        h1 {
+            margin-top: 2rem;
+            font-weight: 800;
+            color: #4ea8de;
+            letter-spacing: 2px;
+        }
+
+        #score {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #22223b;
+        }
+
+        #timer {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #e74c3c;
+        }
+
+        .box {
+            padding: 8px;
+            box-shadow: 0 4px 24px rgba(78, 168, 222, 0.10);
+            background: linear-gradient(90deg, #bccbf6 0%, #bccbf6 50%, #c69ef2 100%);
+            border-radius: 20px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(8, 40px);
+            grid-template-rows: repeat(8, 40px);
+            gap: 2px;
+            background: rgba(241, 237, 237, 0.843);
+            border-radius: 18px;
+            padding: 8px;
+        }
+
+        .restart {
+            margin-top: 15px;
+            padding: 10px 18px;
+            color: #fff;
+            background-color: #f83122;
+            text-decoration: none;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+
+        .candy {
+            width: 40px;
+            height: auto;
+            border-radius: 10px;
+            background-size: cover;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .candy:active {
+            transform: scale(1.1) translateY(1px);
+        }
+
+        .candy.pop {
+            animation: pop 420ms forwards;
+        }
+
+        .candy.dragging {
+            outline: 3px dashed #ffcc00;
+            transform: scale(1.15);
+        }
+
+        @keyframes pop {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+
+            50% {
+                transform: scale(1.4);
+                opacity: 0.9;
+            }
+
+            100% {
+                transform: scale(0);
+                opacity: 0;
+            }
+        }
+
+        footer {
+            color: #ffffff5a;
+        }
+
+        footer:hover {
+            color: #000;
+        }
+
+        /* Popup Styles */
+        .popup {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            visibility: hidden;
+        }
+        .popup.show { visibility: visible; }
+        .popup-content {
+            background: #fff;
+            padding: 20px 30px;
+            border-radius: 12px;
+            text-align: center;
+            max-width: 300px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+        }
+        .popup-content h2 {
+            margin: 0 0 10px;
+            color: #4ea8de;
+        }
+        .popup-content button {
+            margin-top: 10px;
+            padding: 8px 14px;
+            background: #f83122;
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Candy Morsels</h1>
+    <div id="score">Score: 0</div>
+    <div id="timer">Time Left: 60s</div>
+    <div class="box">
+        <div class="grid" id="grid"></div>
+    </div>
+    <div class="restart"><a onclick="window.location.reload()">Restart</a></div>
+    <footer>Coding by Saheel Raj Prasad X'D'</footer>
+
+    <!-- Intro Popup -->
+    <div id="introPopup" class="popup">
+      <div class="popup-content">
+        <h2>How to Play</h2>
+        <p>Match 3 or more candies by swapping adjacent ones.<br>
+           Click, drag, or swipe to swap!</p>
+      </div>
+    </div>
+
+    <!-- Game Over Popup -->
+    <div id="gameOverPopup" class="popup">
+      <div class="popup-content">
+        <h2>Game Over!</h2>
+        <p id="finalScore">Your score: 0</p>
+        <button onclick="window.location.reload()">Play Again</button>
+      </div>
+    </div>
+
+    <!-- Background music (will be picked randomly in JS) -->
+    <audio id="bgMusic" loop autoplay></audio>
+
+    <!-- Block removal sound -->
+    <audio id="removeSound" src="blkremo.mp3"></audio>
+
+    <script>
+        const grid = document.getElementById('grid');
+        const scoreDisplay = document.getElementById('score');
+        const timerDisplay = document.getElementById('timer');
+        const width = 8;
+        const candyImages = ['red.png', 'blue.png', 'yellow.png', 'green.png', 'purple.png'];
+        let squares = [];
+        let score = 0;
+        let selectedCandy = null;
+        let timeLeft = 60;
+
+        // 🎵 Background theme (randomly select)
+        const themes = ["theme1.mp3", "theme2.mp3"];
+        const chosenTheme = themes[Math.floor(Math.random() * themes.length)];
+        const bgMusic = document.getElementById("bgMusic");
+        bgMusic.src = chosenTheme;
+        bgMusic.volume = 0.4;
+
+        const removeSound = document.getElementById("removeSound");
+
+        // Create the game board
+        function createBoard() {
+            for (let i = 0; i < width * width; i++) {
+                const square = document.createElement('div');
+                square.classList.add('candy');
+                square.setAttribute('data-id', i);
+                square.style.backgroundImage = `url(${getValidCandy(i)})`;
+                grid.appendChild(square);
+                squares.push(square);
+            }
+            checkMatches();
+        }
+
+        function getRandomCandy() {
+            return candyImages[Math.floor(Math.random() * candyImages.length)];
+        }
+
+        function getValidCandy(index) {
+            let candy;
+            do {
+                candy = getRandomCandy();
+            } while (createsMatch(index, candy));
+            return candy;
+        }
+
+        function createsMatch(index, candy) {
+            const rowStart = Math.floor(index / width) * width;
+            const colStart = index % width;
+
+            if (colStart >= 2 &&
+                candy === squares[index - 1]?.style.backgroundImage &&
+                candy === squares[index - 2]?.style.backgroundImage) {
+                return true;
+            }
+            if (index >= width * 2 &&
+                candy === squares[index - width]?.style.backgroundImage &&
+                candy === squares[index - width * 2]?.style.backgroundImage) {
+                return true;
+            }
+            return false;
+        }
+
+        function handleCandyClick(e) {
+            const clickedCandy = e.target;
+            const clickedIndex = parseInt(clickedCandy.getAttribute('data-id'));
+
+            if (!selectedCandy) {
+                selectedCandy = clickedCandy;
+                selectedCandy.style.outline = '3px solid #b352d1';
+            } else {
+                const selectedIndex = parseInt(selectedCandy.getAttribute('data-id'));
+                if (isAdjacent(selectedIndex, clickedIndex)) {
+                    swapCandies(selectedCandy, clickedCandy);
+                }
+                selectedCandy.style.outline = '';
+                selectedCandy = null;
+            }
+        }
+
+        function isAdjacent(index1, index2) {
+            return Math.abs(index1 - index2) === 1 || Math.abs(index1 - index2) === width;
+        }
+
+        function swapCandies(candy1, candy2) {
+            const temp = candy1.style.backgroundImage;
+            candy1.style.backgroundImage = candy2.style.backgroundImage;
+            candy2.style.backgroundImage = temp;
+
+            if (!checkMatches()) {
+                setTimeout(() => {
+                    candy1.style.backgroundImage = candy2.style.backgroundImage;
+                    candy2.style.backgroundImage = temp;
+                }, 200);
+            }
+        }
+
+        function checkMatches() {
+            let matched = false;
+
+            for (let i = 0; i < width * width; i++) {
+                const candy = squares[i].style.backgroundImage;
+
+                if (i % width < width - 2 &&
+                    candy && candy === squares[i + 1]?.style.backgroundImage &&
+                    candy === squares[i + 2]?.style.backgroundImage) {
+                    matched = true;
+                    clearCandies([i, i + 1, i + 2]);
+                }
+                if (i < width * (width - 2) &&
+                    candy && candy === squares[i + width]?.style.backgroundImage &&
+                    candy === squares[i + width * 2]?.style.backgroundImage) {
+                    matched = true;
+                    clearCandies([i, i + width, i + width * 2]);
+                }
+            }
+
+            if (matched) {
+                score += 10;
+                scoreDisplay.textContent = `Score: ${score}`;
+                setTimeout(() => {
+                    dropCandies();
+                    setTimeout(checkMatches, 300);
+                }, 300);
+            }
+            return matched;
+        }
+
+        function clearCandies(indices) {
+            indices.forEach(index => {
+                squares[index].classList.add('pop');
+                setTimeout(() => {
+                    squares[index].style.backgroundImage = '';
+                    squares[index].classList.remove('pop');
+                    removeSound.currentTime = 0;
+                    removeSound.play();
+                }, 300);
+            });
+        }
+
+        function dropCandies() {
+            let moved = false;
+            for (let i = width * (width - 1) - 1; i >= 0; i--) {
+                if (squares[i + width]?.style.backgroundImage === '') {
+                    squares[i + width].style.backgroundImage = squares[i].style.backgroundImage;
+                    squares[i].style.backgroundImage = '';
+                    moved = true;
+                }
+            }
+            for (let i = 0; i < width; i++) {
+                if (squares[i].style.backgroundImage === '') {
+                    squares[i].style.backgroundImage = `url(${getRandomCandy()})`;
+                    moved = true;
+                }
+            }
+            if (moved) {
+                setTimeout(dropCandies, 80);
+            }
+        }
+
+        function startTimer() {
+            const timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `Time Left: ${timeLeft}s`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    showGameOverPopup();
+                }
+            }, 1000);
+        }
+
+        function showIntroPopup() {
+            if (!localStorage.getItem("introShown")) {
+                const intro = document.getElementById("introPopup");
+                intro.classList.add("show");
+                setTimeout(() => {
+                    intro.classList.remove("show");
+                    localStorage.setItem("introShown", "true");
+                }, 5000);
+            }
+        }
+
+        function showGameOverPopup() {
+            const gameOver = document.getElementById("gameOverPopup");
+            document.getElementById("finalScore").textContent = `Your score: ${score}`;
+            gameOver.classList.add("show");
+        }
+
+        createBoard();
+        squares.forEach(square => square.addEventListener('click', handleCandyClick));
+
+        // Drag & Swipe support
+        let dragStartId = null;
+
+        // Desktop drag
+        squares.forEach(square => {
+            square.setAttribute('draggable', true);
+
+            square.addEventListener('dragstart', (e) => {
+                dragStartId = e.target.getAttribute('data-id');
+                e.target.classList.add('dragging');
+            });
+
+            square.addEventListener('dragend', (e) => {
+                e.target.classList.remove('dragging');
+            });
+
+            square.addEventListener('dragover', (e) => {
+                e.preventDefault();
+            });
+
+            square.addEventListener('drop', (e) => {
+                const dragEndId = e.target.getAttribute('data-id');
+                if (isAdjacent(parseInt(dragStartId), parseInt(dragEndId))) {
+                    swapCandies(squares[dragStartId], squares[dragEndId]);
+                }
+                dragStartId = null;
+            });
+        });
+
+        // Mobile touch swipe with indication
+        squares.forEach(square => {
+            let startX, startY;
+            square.addEventListener('touchstart', (e) => {
+                dragStartId = e.target.getAttribute('data-id');
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                e.target.classList.add('dragging');
+            }, { passive: false });
+
+            square.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+
+            square.addEventListener('touchend', (e) => {
+                const startIndex = parseInt(dragStartId);
+                e.target.classList.remove('dragging');
+                if (!dragStartId) return;
+
+                let endX = e.changedTouches[0].clientX;
+                let endY = e.changedTouches[0].clientY;
+                let dx = endX - startX;
+                let dy = endY - startY;
+
+                let dragEndId = null;
+
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    if (dx > 0 && startIndex % width < width - 1) {
+                        dragEndId = startIndex + 1;
+                    } else if (dx < 0 && startIndex % width > 0) {
+                        dragEndId = startIndex - 1;
+                    }
+                } else {
+                    if (dy > 0 && startIndex < width * (width - 1)) {
+                        dragEndId = startIndex + width;
+                    } else if (dy < 0 && startIndex >= width) {
+                        dragEndId = startIndex - width;
+                    }
+                }
+
+                if (dragEndId !== null && isAdjacent(startIndex, dragEndId)) {
+                    swapCandies(squares[startIndex], squares[dragEndId]);
+                }
+
+                dragStartId = null;
+            }, { passive: false });
+        });
+
+        // Show intro on first load
+        window.addEventListener("load", showIntroPopup);
+
+        startTimer();
+    </script>
+</body>
+
+</html>
