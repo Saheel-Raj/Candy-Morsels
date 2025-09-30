@@ -17,41 +17,54 @@
         }
 
         h1 {
-            margin-top: 2rem;
-            font-weight: 800;
-            color: #4ea8de;
+            margin-top: 1.5rem;
+            font-weight: 900;
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #ff6a00, #ee0979);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
             letter-spacing: 2px;
+            text-shadow: 2px 2px #fff3;
+        }
+
+        #score,
+        #timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 12px;
+            margin: 0.5rem;
+            display: inline-block;
         }
 
         #score {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #22223b;
+            background: #d1f7c4;
+            color: #2d6a4f9f;
         }
 
         #timer {
-            font-size: 1.2rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #e74c3c;
+            background: #ffe3e3;
+            color: #d90427a3;
         }
 
         .box {
             padding: 8px;
-            box-shadow: 0 4px 24px rgba(78, 168, 222, 0.10);
+            box-shadow: 0 8px 28px rgba(78, 168, 222, 0.10);
             background: linear-gradient(90deg, #bccbf6 0%, #bccbf6 50%, #c69ef2 100%);
             border-radius: 20px;
         }
 
         .grid {
             display: grid;
-            grid-template-columns: repeat(8, 40px);
-            grid-template-rows: repeat(8, 40px);
-            gap: 2px;
-            background: rgba(241, 237, 237, 0.843);
+            grid-template-columns: repeat(8, 1fr);
+            gap: 4px;
+            background: rgba(255, 255, 255, 0.7);
             border-radius: 18px;
-            padding: 8px;
+            padding: 6px;
+            box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.15);
+            width: 90vw;
+            max-width: 450px;
+            aspect-ratio: 1 / 1;
         }
 
         .restart {
@@ -66,12 +79,12 @@
         }
 
         .candy {
-            width: 40px;
-            height: auto;
+            width: 100%;
+            aspect-ratio: 1 / 1;
             border-radius: 10px;
             background-size: cover;
             cursor: pointer;
-            transition: transform 0.3s;
+            transition: transform 0.2s, box-shadow 0.2s;
         }
 
         .candy:active {
@@ -105,38 +118,46 @@
         }
 
         footer {
-            color: #ffffff5a;
-        }
-
-        footer:hover {
+            margin-top: auto;
+            text-align: center;
             color: #000;
+            padding: 10px;
+            font-size: 14px;
         }
 
-        /* Popup Styles */
+
         .popup {
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
             display: flex;
             align-items: center;
             justify-content: center;
             z-index: 1000;
             visibility: hidden;
         }
-        .popup.show { visibility: visible; }
+
+        .popup.show {
+            visibility: visible;
+        }
+
         .popup-content {
             background: #fff;
             padding: 20px 30px;
             border-radius: 12px;
             text-align: center;
             max-width: 300px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
         }
+
         .popup-content h2 {
             margin: 0 0 10px;
             color: #4ea8de;
         }
+
         .popup-content button {
             margin-top: 10px;
             padding: 8px 14px;
@@ -146,6 +167,23 @@
             color: #fff;
             font-size: 16px;
             cursor: pointer;
+        }
+
+        @media (max-width: 500px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+
+            #score,
+            #timer {
+                font-size: 1rem;
+                padding: 6px 10px;
+            }
+
+            .restart a {
+                font-size: 16px;
+                padding: 10px 16px;
+            }
         }
     </style>
 </head>
@@ -158,24 +196,24 @@
         <div class="grid" id="grid"></div>
     </div>
     <div class="restart"><a onclick="window.location.reload()">Restart</a></div>
-    <footer>Coding by Saheel Raj Prasad X'D'</footer>
+    <footer>Coded by Saheel Raj Prasad X'D'</footer>
 
     <!-- Intro Popup -->
     <div id="introPopup" class="popup">
-      <div class="popup-content">
-        <h2>How to Play</h2>
-        <p>Match 3 or more candies by swapping adjacent ones.<br>
-           Click, drag, or swipe to swap!</p>
-      </div>
+        <div class="popup-content">
+            <h2>How to Play</h2>
+            <p>Match 3 or more candies by swapping adjacent ones.<br>
+                Click, drag, or swipe to swap! <br> Highest score by Saheel(Developer) 940, try to beat me!</p>
+        </div>
     </div>
 
     <!-- Game Over Popup -->
     <div id="gameOverPopup" class="popup">
-      <div class="popup-content">
-        <h2>Game Over!</h2>
-        <p id="finalScore">Your score: 0</p>
-        <button onclick="window.location.reload()">Play Again</button>
-      </div>
+        <div class="popup-content">
+            <h2>Game Over!</h2>
+            <p id="finalScore">Your score: 0</p>
+            <button onclick="window.location.reload()">Play Again</button>
+        </div>
     </div>
 
     <!-- Background music (will be picked randomly in JS) -->
@@ -195,12 +233,12 @@
         let selectedCandy = null;
         let timeLeft = 60;
 
-        // 🎵 Background theme (randomly select)
+        // Background theme (randomly select)
         const themes = ["theme1.mp3", "theme2.mp3"];
         const chosenTheme = themes[Math.floor(Math.random() * themes.length)];
         const bgMusic = document.getElementById("bgMusic");
         bgMusic.src = chosenTheme;
-        bgMusic.volume = 0.4;
+        bgMusic.volume = 0.8;
 
         const removeSound = document.getElementById("removeSound");
 
@@ -272,11 +310,13 @@
             candy1.style.backgroundImage = candy2.style.backgroundImage;
             candy2.style.backgroundImage = temp;
 
-            if (!checkMatches()) {
-                setTimeout(() => {
-                    candy1.style.backgroundImage = candy2.style.backgroundImage;
-                    candy2.style.backgroundImage = temp;
-                }, 200);
+            // Only keep the swap if it makes a valid match
+            if (checkMatches()) {
+                return; // valid swap → leave it
+            } else {
+                // revert immediately if no match
+                candy2.style.backgroundImage = candy1.style.backgroundImage;
+                candy1.style.backgroundImage = temp;
             }
         }
 
@@ -456,7 +496,11 @@
         window.addEventListener("load", showIntroPopup);
 
         startTimer();
+
+        //made by saheel
     </script>
 </body>
+
+    
 
 </html>
